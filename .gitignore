@@ -1,0 +1,5 @@
+# Compiled binaries
+tb_server-darwin-amd64
+tb_server-darwin-arm64
+tb_server-linux-amd64
+tb_server-linux-arm64
