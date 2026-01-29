@@ -58,10 +58,23 @@ download() {
     local url="$1"
     local output="$2"
 
+    # 检查目录是否可写
+    local dir=$(dirname "$output")
+    if [ ! -w "$dir" ]; then
+        error "目录不可写: $dir"
+    fi
+
+    # 检查磁盘空间（至少需要 50MB）
+    local available=$(df -m "$dir" 2>/dev/null | awk 'NR==2 {print $4}')
+    if [ -n "$available" ] && [ "$available" -lt 50 ]; then
+        error "磁盘空间不足: ${available}MB 可用，需要至少 50MB"
+    fi
+
     if command -v curl &> /dev/null; then
-        curl -fsSL "$url" -o "$output"
+        # 使用 --progress-bar 显示进度，-L 跟随重定向
+        curl -L --progress-bar --fail "$url" -o "$output"
     elif command -v wget &> /dev/null; then
-        wget -q "$url" -O "$output"
+        wget --progress=bar:force "$url" -O "$output"
     else
         error "需要 curl 或 wget"
     fi
