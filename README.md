@@ -2,7 +2,23 @@
 
 TermBuddy Server - 用于 iOS TermBuddy 应用的远程终端服务端
 
-## 快速开始
+## 一键安装（推荐）
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/atlasbioinfo/TB_server/main/install.sh | bash
+```
+
+自动完成：下载 → 安装到 `~/.termbuddy` → 生成配置和 Token
+
+安装完成后启动：
+
+```bash
+cd ~/.termbuddy && ./tb_server serve
+```
+
+---
+
+## 手动安装
 
 ### 1. 下载二进制文件
 
