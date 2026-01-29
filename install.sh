@@ -164,11 +164,12 @@ print_summary() {
 
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${GREEN}  TermBuddy Server installed successfully!${NC}"
+    echo -e "${GREEN}  TermBuddy Server installed and running!${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     echo "  Install dir: $INSTALL_DIR"
     echo "  Port:        $PORT"
+    echo "  Status:      Running in background"
     if [ -n "$TOKEN" ]; then
         echo ""
         echo -e "  ${YELLOW}Auth Token (save this):${NC}"
@@ -176,21 +177,20 @@ print_summary() {
     fi
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  Next Steps"
+    echo "  Connect from iOS TermBuddy app"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo "  1. Reload shell config (or re-login):"
-    echo "     source $SHELL_RC"
+    echo "  1. Add server with SSH credentials"
+    echo "  2. Enter the Token shown above"
     echo ""
-    echo "  2. Start server:"
-    echo "     tb_server serve"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  Useful commands"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo "  3. Run in background:"
-    echo "     cd ~/.termbuddy && nohup tb_server serve > tb_server.log 2>&1 &"
-    echo ""
-    echo "  4. Connect from iOS TermBuddy app:"
-    echo "     - Enter server IP and SSH credentials"
-    echo "     - Enter the Token shown above"
+    echo "  Check status:  pgrep -f 'tb_server serve'"
+    echo "  View logs:     tail -f ~/.termbuddy/tb_server.log"
+    echo "  Stop server:   pkill -f 'tb_server serve'"
+    echo "  Restart:       pkill -f 'tb_server serve' && tb_server serve &"
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
@@ -232,6 +232,29 @@ check_existing() {
     fi
 }
 
+# Start server in background
+start_server() {
+    cd "$INSTALL_DIR"
+
+    # Check if already running
+    if pgrep -f "tb_server serve" > /dev/null 2>&1; then
+        warn "Server is already running"
+        return
+    fi
+
+    info "Starting server in background..."
+    nohup ./tb_server serve > tb_server.log 2>&1 &
+
+    # Wait a moment and check if it started
+    sleep 1
+    if pgrep -f "tb_server serve" > /dev/null 2>&1; then
+        success "Server started (PID: $(pgrep -f 'tb_server serve'))"
+        info "Log file: $INSTALL_DIR/tb_server.log"
+    else
+        error "Failed to start server. Check $INSTALL_DIR/tb_server.log"
+    fi
+}
+
 # 主流程
 main() {
     echo ""
@@ -251,6 +274,7 @@ main() {
     fi
 
     setup_path
+    start_server
     print_summary
 }
 
