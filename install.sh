@@ -202,12 +202,12 @@ check_existing() {
         echo ""
         warn "TermBuddy Server is already installed at $INSTALL_DIR"
         echo ""
-        echo "  1) Upgrade  - Update binary only, keep config"
+        echo "  1) Upgrade   - Update binary only, keep config"
         echo "  2) Reinstall - Remove everything and start fresh"
-        echo "  3) Cancel   - Exit without changes"
+        echo "  3) Cancel    - Exit without changes"
         echo ""
         printf "Choose [1/2/3]: "
-        read -r choice
+        read -r choice < /dev/tty
 
         case "$choice" in
             1)
