@@ -40,17 +40,17 @@ detect_platform() {
     case "$ARCH" in
         x86_64|amd64)  ARCH="amd64" ;;
         aarch64|arm64) ARCH="arm64" ;;
-        *) error "不支持的架构: $ARCH" ;;
+        *) error "Unsupported architecture: $ARCH" ;;
     esac
 
     case "$OS" in
         linux)  OS="linux" ;;
         darwin) OS="darwin" ;;
-        *) error "不支持的操作系统: $OS" ;;
+        *) error "Unsupported OS: $OS" ;;
     esac
 
     BINARY_NAME="tb_server-${OS}-${ARCH}"
-    info "检测到平台: $OS/$ARCH"
+    info "Detected platform: $OS/$ARCH"
 }
 
 # 下载文件
@@ -58,60 +58,57 @@ download() {
     local url="$1"
     local output="$2"
 
-    # 检查目录是否可写
     local dir=$(dirname "$output")
     if [ ! -w "$dir" ]; then
-        error "目录不可写: $dir"
+        error "Directory not writable: $dir"
     fi
 
-    # 检查磁盘空间（至少需要 50MB）
+    # Check disk space (need at least 50MB)
     local available=$(df -m "$dir" 2>/dev/null | awk 'NR==2 {print $4}')
     if [ -n "$available" ] && [ "$available" -lt 50 ]; then
-        error "磁盘空间不足: ${available}MB 可用，需要至少 50MB"
+        error "Insufficient disk space: ${available}MB available, need 50MB"
     fi
 
     if command -v curl &> /dev/null; then
-        # 使用 --progress-bar 显示进度，-L 跟随重定向
         curl -L --progress-bar --fail "$url" -o "$output"
     elif command -v wget &> /dev/null; then
         wget --progress=bar:force "$url" -O "$output"
     else
-        error "需要 curl 或 wget"
+        error "curl or wget required"
     fi
 }
 
-# 安装
+# Install
 install_termbuddy() {
-    info "创建安装目录: $INSTALL_DIR"
+    info "Creating install directory: $INSTALL_DIR"
     mkdir -p "$INSTALL_DIR"
 
     local download_url="${RELEASE_URL}/${BINARY_NAME}"
-    info "下载 TermBuddy Server (最新版)..."
-    info "  来源: $download_url"
+    info "Downloading TermBuddy Server (latest)..."
+    info "  From: $download_url"
 
     if ! download "$download_url" "$INSTALL_DIR/tb_server"; then
-        error "下载失败，请检查网络连接或访问 https://github.com/${REPO}/releases 手动下载"
+        error "Download failed. Check network or visit https://github.com/${REPO}/releases"
     fi
 
     chmod +x "$INSTALL_DIR/tb_server"
-    success "下载完成"
+    success "Download complete"
 }
 
-# 初始化配置
+# Initialize config
 init_config() {
     cd "$INSTALL_DIR"
 
     if [ -f "config.yaml" ]; then
-        warn "配置文件已存在，跳过初始化"
+        warn "Config already exists, skipping init"
         return
     fi
 
-    info "初始化配置..."
+    info "Initializing config..."
     ./tb_server init --non-interactive
 
-    # 修改端口（如果指定了非默认端口）
     if [ "$PORT" != "8765" ]; then
-        info "设置端口为 $PORT..."
+        info "Setting port to $PORT..."
         if [ "$OS" = "darwin" ]; then
             sed -i '' "s/port: 8765/port: $PORT/" config.yaml
         else
@@ -119,7 +116,7 @@ init_config() {
         fi
     fi
 
-    success "配置初始化完成"
+    success "Config initialized"
 }
 
 # 获取 Token
@@ -129,89 +126,130 @@ get_token() {
     fi
 }
 
-# 配置 PATH
+# Setup PATH
 setup_path() {
     local path_line="export PATH=\"\$HOME/.termbuddy:\$PATH\""
 
-    # 检测使用的 shell 配置文件
+    # Detect shell config file
     SHELL_RC=""
     if [ -n "$ZSH_VERSION" ] || [ "$SHELL" = "/bin/zsh" ] || [ "$SHELL" = "/usr/bin/zsh" ]; then
         SHELL_RC="$HOME/.zshrc"
     elif [ -n "$BASH_VERSION" ] || [ "$SHELL" = "/bin/bash" ] || [ "$SHELL" = "/usr/bin/bash" ]; then
-        # bash 优先使用 .bashrc，如果不存在则用 .bash_profile
         if [ -f "$HOME/.bashrc" ]; then
             SHELL_RC="$HOME/.bashrc"
         else
             SHELL_RC="$HOME/.bash_profile"
         fi
     else
-        # 默认使用 .profile
         SHELL_RC="$HOME/.profile"
     fi
 
-    # 检查是否已添加
+    # Check if already added
     if grep -q "\.termbuddy" "$SHELL_RC" 2>/dev/null; then
-        info "PATH 已配置在 $SHELL_RC"
+        info "PATH already configured in $SHELL_RC"
         return
     fi
 
-    # 添加到配置文件
+    # Add to config file
     echo "" >> "$SHELL_RC"
     echo "# TermBuddy Server" >> "$SHELL_RC"
     echo "$path_line" >> "$SHELL_RC"
 
-    success "已添加 PATH 到 $SHELL_RC"
+    success "Added PATH to $SHELL_RC"
 }
 
-# 打印安装结果
+# Print summary
 print_summary() {
     get_token
 
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${GREEN}  TermBuddy Server 安装成功！${NC}"
+    echo -e "${GREEN}  TermBuddy Server installed successfully!${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo "  安装目录: $INSTALL_DIR"
-    echo "  端口:     $PORT"
+    echo "  Install dir: $INSTALL_DIR"
+    echo "  Port:        $PORT"
     if [ -n "$TOKEN" ]; then
         echo ""
-        echo -e "  ${YELLOW}认证 Token（请保存）:${NC}"
+        echo -e "  ${YELLOW}Auth Token (save this):${NC}"
         echo "  $TOKEN"
     fi
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  下一步"
+    echo "  Next Steps"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo "  1. 重新加载 shell 配置（或重新登录）:"
+    echo "  1. Reload shell config (or re-login):"
     echo "     source $SHELL_RC"
     echo ""
-    echo "  2. 启动服务:"
+    echo "  2. Start server:"
     echo "     tb_server serve"
     echo ""
-    echo "  3. 后台运行:"
+    echo "  3. Run in background:"
     echo "     cd ~/.termbuddy && nohup tb_server serve > tb_server.log 2>&1 &"
     echo ""
-    echo "  4. 在 iOS TermBuddy 应用中添加服务器:"
-    echo "     - 输入服务器 IP 和 SSH 凭据"
-    echo "     - 输入上面的 Token"
+    echo "  4. Connect from iOS TermBuddy app:"
+    echo "     - Enter server IP and SSH credentials"
+    echo "     - Enter the Token shown above"
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
+}
+
+# 检测已安装
+check_existing() {
+    if [ -f "$INSTALL_DIR/tb_server" ]; then
+        echo ""
+        warn "TermBuddy Server is already installed at $INSTALL_DIR"
+        echo ""
+        echo "  1) Upgrade  - Update binary only, keep config"
+        echo "  2) Reinstall - Remove everything and start fresh"
+        echo "  3) Cancel   - Exit without changes"
+        echo ""
+        printf "Choose [1/2/3]: "
+        read -r choice
+
+        case "$choice" in
+            1)
+                info "Upgrading..."
+                UPGRADE_MODE=true
+                ;;
+            2)
+                info "Reinstalling..."
+                rm -rf "$INSTALL_DIR"
+                UPGRADE_MODE=false
+                ;;
+            3|"")
+                info "Cancelled."
+                exit 0
+                ;;
+            *)
+                error "Invalid choice"
+                ;;
+        esac
+    else
+        UPGRADE_MODE=false
+    fi
 }
 
 # 主流程
 main() {
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "       TermBuddy Server 安装程序"
+    echo "       TermBuddy Server Installer"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
 
     detect_platform
+    check_existing
     install_termbuddy
-    init_config
+
+    if [ "$UPGRADE_MODE" = false ]; then
+        init_config
+    else
+        success "Binary upgraded. Config preserved."
+    fi
+
     setup_path
     print_summary
 }
