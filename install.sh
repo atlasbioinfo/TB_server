@@ -129,6 +129,40 @@ get_token() {
     fi
 }
 
+# 配置 PATH
+setup_path() {
+    local path_line="export PATH=\"\$HOME/.termbuddy:\$PATH\""
+
+    # 检测使用的 shell 配置文件
+    SHELL_RC=""
+    if [ -n "$ZSH_VERSION" ] || [ "$SHELL" = "/bin/zsh" ] || [ "$SHELL" = "/usr/bin/zsh" ]; then
+        SHELL_RC="$HOME/.zshrc"
+    elif [ -n "$BASH_VERSION" ] || [ "$SHELL" = "/bin/bash" ] || [ "$SHELL" = "/usr/bin/bash" ]; then
+        # bash 优先使用 .bashrc，如果不存在则用 .bash_profile
+        if [ -f "$HOME/.bashrc" ]; then
+            SHELL_RC="$HOME/.bashrc"
+        else
+            SHELL_RC="$HOME/.bash_profile"
+        fi
+    else
+        # 默认使用 .profile
+        SHELL_RC="$HOME/.profile"
+    fi
+
+    # 检查是否已添加
+    if grep -q "\.termbuddy" "$SHELL_RC" 2>/dev/null; then
+        info "PATH 已配置在 $SHELL_RC"
+        return
+    fi
+
+    # 添加到配置文件
+    echo "" >> "$SHELL_RC"
+    echo "# TermBuddy Server" >> "$SHELL_RC"
+    echo "$path_line" >> "$SHELL_RC"
+
+    success "已添加 PATH 到 $SHELL_RC"
+}
+
 # 打印安装结果
 print_summary() {
     get_token
@@ -150,14 +184,16 @@ print_summary() {
     echo "  下一步"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo "  1. 启动服务:"
-    echo "     cd $INSTALL_DIR && ./tb_server serve"
+    echo "  1. 重新加载 shell 配置（或重新登录）:"
+    echo "     source $SHELL_RC"
     echo ""
-    echo "  2. 后台运行:"
-    echo "     cd $INSTALL_DIR"
-    echo "     nohup ./tb_server serve > tb_server.log 2>&1 &"
+    echo "  2. 启动服务:"
+    echo "     tb_server serve"
     echo ""
-    echo "  3. 在 iOS TermBuddy 应用中添加服务器:"
+    echo "  3. 后台运行:"
+    echo "     cd ~/.termbuddy && nohup tb_server serve > tb_server.log 2>&1 &"
+    echo ""
+    echo "  4. 在 iOS TermBuddy 应用中添加服务器:"
     echo "     - 输入服务器 IP 和 SSH 凭据"
     echo "     - 输入上面的 Token"
     echo ""
@@ -176,6 +212,7 @@ main() {
     detect_platform
     install_termbuddy
     init_config
+    setup_path
     print_summary
 }
 
