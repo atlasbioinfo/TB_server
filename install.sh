@@ -17,7 +17,8 @@ set -e
 # 配置
 INSTALL_DIR="${TERMBUDDY_INSTALL_DIR:-$HOME/.termbuddy}"
 PORT="${TERMBUDDY_PORT:-8765}"
-REPO_URL="https://raw.githubusercontent.com/atlasbioinfo/TB_server/main"
+REPO="atlasbioinfo/TB_server"
+RELEASE_URL="https://github.com/${REPO}/releases/latest/download"
 
 # 颜色
 RED='\033[0;31m'
@@ -71,13 +72,15 @@ install_termbuddy() {
     info "创建安装目录: $INSTALL_DIR"
     mkdir -p "$INSTALL_DIR"
 
-    local download_url="${REPO_URL}/${BINARY_NAME}"
-    info "下载 TermBuddy Server..."
+    local download_url="${RELEASE_URL}/${BINARY_NAME}"
+    info "下载 TermBuddy Server (最新版)..."
     info "  来源: $download_url"
 
-    download "$download_url" "$INSTALL_DIR/tb_server"
-    chmod +x "$INSTALL_DIR/tb_server"
+    if ! download "$download_url" "$INSTALL_DIR/tb_server"; then
+        error "下载失败，请检查网络连接或访问 https://github.com/${REPO}/releases 手动下载"
+    fi
 
+    chmod +x "$INSTALL_DIR/tb_server"
     success "下载完成"
 }
 
