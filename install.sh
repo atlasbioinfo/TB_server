@@ -267,7 +267,11 @@ main() {
     check_existing
     install_termbuddy
 
+    # Always ensure config exists before starting server
     if [ "$UPGRADE_MODE" = false ]; then
+        init_config
+    elif [ ! -f "$INSTALL_DIR/config.yaml" ]; then
+        warn "Config missing, running init..."
         init_config
     else
         success "Binary upgraded. Config preserved."
